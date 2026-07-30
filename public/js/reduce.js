@@ -18,12 +18,26 @@
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   }
 
+  /* Spend one copy of an item. Picks the lexicographically-first matching
+   * rollId rather than "the newest", so every device removes the same one and
+   * the fold stays deterministic. */
+  function removeOne(rolls, itemId) {
+    if (!itemId) return false;
+    var keys = Object.keys(rolls).filter(function (k) { return rolls[k].itemId === itemId; }).sort();
+    if (!keys.length) return false;
+    delete rolls[keys[0]];
+    return true;
+  }
+
   function reduce(events) {
     var R = window.RULES;
     var st = {
       quests: {},        // id -> quest
       xp: 0, gold: 0, level: 1,
       rewards: {},       // id -> {label, price, bought}
+      rolls: {},         // rollId -> {itemId, at, questId}   (hoard derives from this)
+      hoard: {},         // itemId -> count                   (built after the fold)
+      pendingCharm: false,
       done: {},          // questId -> [dateKey, ...]
       log: [],           // newest last
       levelUps: [],      // [{level, at}]
@@ -95,10 +109,28 @@
             mult: mult.total, parts: mult.parts
           });
 
+          st.pendingCharm = false;   // a charm is spent by the next completion
+
           if (q.kind === 'bounty') q.state = 'done';
           else (st.done[q.id] || (st.done[q.id] = [])).push(p.dateKey);
           break;
         }
+
+        /* The itemId is READ here, never generated — the roll already happened
+         * in loot.js and its outcome is a recorded fact. Replaying this event
+         * must always produce the same drop. */
+        case 'loot.rolled':
+          if (!p.rollId || !p.itemId) break;
+          if (p.replaces) delete st.rolls[p.replaces];   // a reroll supersedes its roll
+          st.rolls[p.rollId] = { itemId: p.itemId, at: e.ts, questId: p.questId };
+          st.log.push({ at: e.ts, kind: 'loot', itemId: p.itemId, questId: p.questId });
+          break;
+
+        case 'item.consumed':
+          if (!removeOne(st.rolls, p.itemId)) break;      // can't spend what you don't hold
+          if (p.itemId === 'charm') st.pendingCharm = true;
+          st.log.push({ at: e.ts, kind: 'use', itemId: p.itemId });
+          break;
 
         case 'shop.stocked':
           if (!p.rewardId) break;
@@ -131,6 +163,14 @@
     }
 
     st.level = R.levelFromXp(st.xp);
+
+    /* Hoard is a projection of the surviving rolls, so a reroll that removed
+     * its predecessor is reflected without any separate bookkeeping. */
+    Object.keys(st.rolls).forEach(function (k) {
+      var id = st.rolls[k].itemId;
+      st.hoard[id] = (st.hoard[id] || 0) + 1;
+    });
+
     return st;
   }
 

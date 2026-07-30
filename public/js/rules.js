@@ -87,6 +87,8 @@
    * dust + momentum + neglect can't compound into a runaway payout.
    * Seam remains open for L6 momentum and L7 neglect. */
   R.MULTIPLIER_CAP = 6;
+  R.LOOT_LEVEL = 4;
+
   R.multipliers = function (quest, state, event) {
     var parts = [], total = 1;
     var level = state && state.level || 1;
@@ -98,6 +100,14 @@
         parts.push({ name: 'dust', value: dust, ageDays: age });
         total += dust - 1;
       }
+    }
+
+    /* Doubling Charm (L4) — armed by an item.consumed event, spent by the
+     * next completion. Adds ×1 rather than multiplying, same as every other
+     * bonus, so it can't compound with a 4× dusted bounty into a runaway. */
+    if (state && state.pendingCharm) {
+      parts.push({ name: 'charm', value: 2 });
+      total += 1;
     }
 
     return { total: Math.min(total, R.MULTIPLIER_CAP), parts: parts };
@@ -119,11 +129,12 @@
   /* ---- the unlock ladder --------------------------------------------- */
   /* Build order IS unlock order: only levels at or below BUILT exist as code,
    * so the gate is honest — there is nothing above it to peek at. */
-  R.BUILT = 3;
+  R.BUILT = 4;
   R.UNLOCKS = {
     1: { name: 'The Quest Board', desc: 'Bounties, dailies, and XP. Type a line, tap it done.' },
     2: { name: 'Gold & the Shop', desc: 'Completions now pay gold. Stock the Shop with real rewards and price them now, while you are feeling disciplined.' },
-    3: { name: 'Dust', desc: 'Bounties you avoid now gather dust — and dust is worth XP. The longer one sits, the more it pays, up to four times. Nothing here is overdue. It is just getting richer.' }
+    3: { name: 'Dust', desc: 'Bounties you avoid now gather dust — and dust is worth XP. The longer one sits, the more it pays, up to four times. Nothing here is overdue. It is just getting richer.' },
+    4: { name: 'Loot & the Hoard', desc: 'Completions can now drop something. Curios remember which part of your life they came from; the rest buy you slack — a reroll, a doubled payout. Harder and dustier quests drop more, and drop better.' }
   };
   R.unlockAt = function (L) { return R.UNLOCKS[L] || null; };
 

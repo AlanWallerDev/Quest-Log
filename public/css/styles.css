@@ -147,6 +147,17 @@ button:not(.tick):not(.drop):not(.buy):not(.tab) {
 }
 button.ghost { background: none; color: var(--ink); border: 1px solid var(--line); }
 
+/* hoard --------------------------------------------------------------- */
+.curios { display: flex; flex-direction: column; gap: .3rem; }
+.curio {
+  padding: .5rem .65rem; border: 1px solid var(--line); border-radius: 8px;
+  font-size: .85rem; background: var(--bg2);
+}
+.curio.unknown { color: var(--line); background: none; letter-spacing: .2em; text-align: center; }
+.curio.r-uncommon { border-color: #6f9bd155; }
+.curio.r-rare { border-color: var(--gold); box-shadow: 0 0 14px #d9a4411f inset; }
+.btnrow.center { justify-content: center; }
+
 /* locked + modal ------------------------------------------------------ */
 .locked-pane { text-align: center; padding: 3rem 1rem; }
 .locked-pane .big { font-size: 2.5rem; opacity: .4; }

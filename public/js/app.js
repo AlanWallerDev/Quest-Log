@@ -63,6 +63,7 @@
       '<nav class="tabs">' +
         tab('board', 'Board') +
         tab('shop', 'Shop', st.level < 2) +
+        tab('hoard', 'Hoard', st.level < R.LOOT_LEVEL) +
         tab('log', 'Log') +
         tab('settings', '⚙') +
       '</nav>' +
@@ -96,6 +97,7 @@
 
   function paneHtml() {
     if (view === 'shop') return st.level >= 2 ? shopHtml() : lockedHtml(2);
+    if (view === 'hoard') return st.level >= R.LOOT_LEVEL ? hoardHtml() : lockedHtml(R.LOOT_LEVEL);
     if (view === 'log') return logHtml();
     if (view === 'settings') return settingsHtml();
     return boardHtml();
@@ -226,16 +228,51 @@
     return h;
   }
 
+  /* ---- hoard --------------------------------------------------------- */
+  function hoardHtml() {
+    var found = Object.keys(st.hoard).length;
+    var h = '<p class="lede">' + found + ' of ' + LOOT.total() + ' found. Curios do nothing ' +
+      'but remember which part of your life they came from.</p>';
+
+    h += '<h2 class="sech">Consumables</h2>';
+    h += LOOT.ITEMS.filter(function (i) { return i.kind === 'consumable'; }).map(function (i) {
+      var n = st.hoard[i.id] || 0;
+      var armed = i.id === 'charm' && st.pendingCharm;
+      return '<div class="reward' + (n ? '' : ' poor') + '">' +
+        '<div class="rmain"><div class="rlabel">' + esc(i.name) + (n > 1 ? ' ×' + n : '') +
+          (armed ? ' <span class="dust">armed</span>' : '') + '</div>' +
+          '<div class="qmeta">' + esc(i.desc) + '</div></div>' +
+        /* A Reroll Token is only spendable at the moment of a drop, so it gets
+           no button here — the drop modal offers it instead. */
+        (i.id === 'charm' && n && !armed ? '<button class="buy" data-use="charm">Use</button>' : '') +
+        '</div>';
+    }).join('');
+
+    h += '<h2 class="sech">Curios</h2><div class="curios">';
+    h += LOOT.ITEMS.filter(function (i) { return i.kind === 'curio'; }).map(function (i) {
+      var n = st.hoard[i.id] || 0;
+      if (!n) return '<div class="curio unknown">???</div>';
+      return '<div class="curio got r-' + i.rarity + '">' +
+        '<span class="dot dom-' + i.domain + '"></span>' + esc(i.name) +
+        (n > 1 ? ' <span class="muted">×' + n + '</span>' : '') + '</div>';
+    }).join('');
+    h += '</div>';
+    return h;
+  }
+
   /* ---- log ----------------------------------------------------------- */
   function logHtml() {
     if (!st.log.length) return empty('Nothing yet.');
     var rows = st.log.slice().reverse().slice(0, 200);
     return '<div class="loglist">' + rows.map(function (l) {
       var when = new Date(l.at);
+      var label = l.title;
+      if (l.kind === 'loot') label = 'Found: ' + itemName(l.itemId);
+      if (l.kind === 'use') label = 'Used: ' + itemName(l.itemId);
       return '<div class="logrow">' +
         '<div class="lwhen muted">' + when.toLocaleDateString() + ' ' +
           when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '</div>' +
-        '<div class="lwhat">' + esc(l.title) + '</div>' +
+        '<div class="lwhat">' + esc(label) + '</div>' +
         '<div class="lval">' + (l.xp ? '<span class="xp">+' + l.xp + ' XP</span> ' : '') +
           (l.mult && l.mult > R.DUST_MIN_SHOW ? '<span class="dust">×' + l.mult.toFixed(1) + '</span> ' : '') +
           (l.gold ? '<span class="gold">' + (l.gold > 0 ? '+' : '') + l.gold + '⛁</span>' : '') + '</div>' +
@@ -283,6 +320,56 @@
       '<button class="close">Continue</button></div>';
     el.addEventListener('click', function (ev) {
       if (ev.target === el || ev.target.className === 'close') { el.remove(); render(); }
+    });
+    document.body.appendChild(el);
+  }
+
+  /* ---- loot ---------------------------------------------------------- */
+  function itemName(id) {
+    var i = window.LOOT && LOOT.get(id);
+    return i ? i.name : String(id);
+  }
+
+  /* The ONLY place a drop is decided. The outcome is written into the event,
+   * so replaying the log can never re-roll it into something else. */
+  function rollLoot(quest, dust) {
+    if (!quest || st.level < R.LOOT_LEVEL) return;
+    var itemId = LOOT.roll(quest, dust);
+    if (!itemId) return;
+    var rollId = S.uuid();
+    emit('loot.rolled', { rollId: rollId, questId: quest.id, itemId: itemId })
+      .then(function () { showDrop(itemId, rollId, quest, dust); });
+  }
+
+  function doReroll(rollId, quest, dust) {
+    emit('item.consumed', { itemId: 'reroll' }).then(function () {
+      var newId = LOOT.pick(quest, dust);      // paid for, so it always yields
+      var newRoll = S.uuid();
+      return emit('loot.rolled', {
+        rollId: newRoll, questId: quest.id, itemId: newId, replaces: rollId
+      }).then(function () { showDrop(newId, newRoll, quest, dust); });
+    });
+  }
+
+  function showDrop(itemId, rollId, quest, dust) {
+    var item = LOOT.get(itemId);
+    if (!item) return;
+    var tokens = st.hoard.reroll || 0;
+
+    var el = document.createElement('div');
+    el.className = 'modal';
+    el.innerHTML = '<div class="card">' +
+      '<div class="kicker">' + LOOT.RARITY_LABEL[item.rarity] + ' find</div>' +
+      '<h2>' + esc(item.name) + '</h2>' +
+      '<p>' + esc(item.desc || 'A curio. It does nothing but remember.') + '</p>' +
+      '<div class="btnrow center">' +
+        (tokens ? '<button class="reroll ghost">Reroll (' + tokens + ')</button>' : '') +
+        '<button class="close">Keep</button>' +
+      '</div></div>';
+
+    el.addEventListener('click', function (ev) {
+      if (ev.target === el || ev.target.classList.contains('close')) { el.remove(); render(); return; }
+      if (ev.target.classList.contains('reroll')) { el.remove(); doReroll(rollId, quest, dust); }
     });
     document.body.appendChild(el);
   }
@@ -351,7 +438,7 @@
   }
 
   function onClick(ev) {
-    var t = ev.target.closest('[data-view],[data-done],[data-drop],[data-buy],[data-unstock]');
+    var t = ev.target.closest('[data-view],[data-done],[data-drop],[data-buy],[data-unstock],[data-use]');
     if (!t) return;
 
     if (t.dataset.view) {
@@ -359,9 +446,13 @@
       view = t.dataset.view; render(); return;
     }
     if (t.dataset.done) {
-      emit('quest.completed', { questId: t.dataset.done, dateKey: R.dateKey(new Date()) });
+      var q = st.quests[t.dataset.done];
+      var dustAt = q ? R.questDust(q, st.level, new Date()) : 1;
+      emit('quest.completed', { questId: t.dataset.done, dateKey: R.dateKey(new Date()) })
+        .then(function () { rollLoot(q, dustAt); });
       return;
     }
+    if (t.dataset.use) { emit('item.consumed', { itemId: t.dataset.use }); return; }
     if (t.dataset.drop) { emit('quest.dropped', { questId: t.dataset.drop, reason: 'abandoned' }); return; }
     if (t.dataset.buy) { emit('shop.purchased', { rewardId: t.dataset.buy }); return; }
     if (t.dataset.unstock) { emit('shop.unstocked', { rewardId: t.dataset.unstock }); return; }

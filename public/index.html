@@ -12,10 +12,10 @@
 <!-- Bump APP_VERSION on EVERY js/css change, or the browser serves the stale
      cached file from the identical ?v=N URL (a hard refresh often won't
      dislodge a versioned URL). -->
-<script>var APP_VERSION = 8;</script>
+<script>var APP_VERSION = 9;</script>
 <script>
 (function () {
-  var files = ['css/styles.css', 'js/rules.js', 'js/parse.js', 'js/reduce.js',
+  var files = ['css/styles.css', 'js/rules.js', 'js/parse.js', 'js/loot.js', 'js/reduce.js',
                'js/store.js', 'js/sync.js', 'js/app.js'];
   for (var i = 0; i < files.length; i++) {
     var f = files[i], u = f + '?v=' + APP_VERSION;

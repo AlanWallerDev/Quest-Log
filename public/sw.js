@@ -8,6 +8,7 @@ var SHELL = [
   './css/styles.css?v=' + VERSION,
   './js/rules.js?v=' + VERSION,
   './js/parse.js?v=' + VERSION,
+  './js/loot.js?v=' + VERSION,
   './js/reduce.js?v=' + VERSION,
   './js/store.js?v=' + VERSION,
   './js/sync.js?v=' + VERSION,
