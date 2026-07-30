@@ -7,7 +7,9 @@
     "dev": "python -m http.server 8743 --directory public",
     "db:init": "wrangler d1 execute questlog --remote --file=worker/schema.sql",
     "db:init:local": "wrangler d1 execute questlog --local --file=worker/schema.sql",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler deploy",
+    "token": "node -e \"console.log(require('crypto').randomBytes(32).toString('base64url'))\"",
+    "secret": "wrangler secret put QUESTLOG_TOKEN"
   },
   "devDependencies": {
     "wrangler": "^4.116.0"

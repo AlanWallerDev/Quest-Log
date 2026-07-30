@@ -169,14 +169,22 @@ Generate a token. This prints it to the terminal, so run it somewhere you don't
 mind it being visible, and keep a copy:
 
 ```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+npm run token
 ```
 
 Set it as the Worker secret — this prompts you to paste it:
 
 ```bash
-npx wrangler secret put QUESTLOG_TOKEN
+npm run secret
 ```
+
+Use the npm scripts rather than calling `npx wrangler` directly. wrangler only
+looks for `wrangler.jsonc` in the current directory, so running it from anywhere
+else fails with *"Required Worker name missing"*; npm resolves scripts against
+the package root, so `npm run …` works from any subdirectory. (If that error
+does appear, it is a working-directory problem, not a broken config. Any
+`Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` printed alongside it is
+unrelated libuv teardown noise on Windows.)
 
 Deploy:
 
@@ -190,6 +198,26 @@ and Save. Repeat on each device you want synced.
 **On security:** that one token is the entire boundary — anyone holding it can
 read and write the log. That is a reasonable trade for a personal quest log;
 don't put anything sensitive in here.
+
+### If you lose the token
+
+Cloudflare cannot give it back. Worker secrets are write-only by design —
+`wrangler secret list` returns names and types only, and the dashboard never
+displays values.
+
+It may still exist locally, though. The app stores it in plaintext in IndexedDB,
+so on any device where you already entered it in ⚙, open the devtools console on
+the deployed site and run:
+
+```javascript
+indexedDB.open('questlog').onsuccess = e => e.target.result.transaction('meta').objectStore('meta').get('token').onsuccess = ev => console.log(ev.target.result)
+```
+
+If it is gone everywhere, just rotate it — `npm run token`, then `npm run
+secret`. This costs nothing: the token is only a shared secret, so replacing it
+loses no data, every event in D1 is untouched, and no redeploy is needed. Any
+device still holding the old token will report `Failed: HTTP 401` on Sync now
+until you update it.
 
 ## Open design question
 
