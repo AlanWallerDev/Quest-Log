@@ -123,28 +123,69 @@ network-first, since it is the one unversioned file and it *carries* the version
 
 ## Deploying sync
 
+### Prerequisites
+
+**Node 22 or newer.** wrangler 4 declares `engines: { node: '>=22' }` and simply
+refuses to start on anything older — the failure reads confusingly like Node
+isn't installed at all. Check with `node --version`; upgrade with
+`winget install OpenJS.NodeJS.LTS`.
+
+wrangler is a devDependency here:
+
+```bash
+npm install
+```
+
+**npm 11 blocks postinstall scripts by default**, and wrangler needs two of them
+— `workerd` is its runtime, `esbuild` its bundler. Without them wrangler installs
+but won't run. Approve exactly those two rather than blanket-allowing:
+
+```bash
+npm approve-scripts esbuild workerd
+```
+
+### Steps
+
+You need a Cloudflare account first; the free tier is plenty. Then authorize
+wrangler — this opens a browser:
+
+```bash
+npx wrangler login
+```
+
+Create the database:
+
 ```bash
 npx wrangler d1 create questlog
 ```
 
-Paste the returned `database_id` into `wrangler.jsonc`, then:
+Paste the returned `database_id` into `wrangler.jsonc`, then create the table:
 
 ```bash
-npx wrangler d1 execute questlog --remote --file=worker/schema.sql
+npm run db:init
 ```
 
-Generate a long random token and set it as the secret:
+Generate a token. This prints it to the terminal, so run it somewhere you don't
+mind it being visible, and keep a copy:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+```
+
+Set it as the Worker secret — this prompts you to paste it:
 
 ```bash
 npx wrangler secret put QUESTLOG_TOKEN
 ```
 
+Deploy:
+
 ```bash
-npx wrangler deploy
+npm run deploy
 ```
 
-Open the deployed URL, go to ⚙, paste the Worker URL and the same token, Save.
-Repeat on each device.
+Then open the deployed URL, go to ⚙, paste the Worker URL and the same token,
+and Save. Repeat on each device you want synced.
 
 **On security:** that one token is the entire boundary — anyone holding it can
 read and write the log. That is a reasonable trade for a personal quest log;

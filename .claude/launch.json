@@ -4,7 +4,7 @@
     {
       "name": "questlog",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8743"],
+      "runtimeArgs": ["-m", "http.server", "8743", "--directory", "public"],
       "port": 8743
     }
   ]

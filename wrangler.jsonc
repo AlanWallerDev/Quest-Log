@@ -4,9 +4,10 @@
   "main": "worker/index.js",
   "compatibility_date": "2025-09-01",
 
-  // Static PWA served from the repo root; the Worker handles /events.
+  // ONLY public/ ships. Never point this at "./" -- that would publish .git,
+  // node_modules and the Worker source along with the app.
   "assets": {
-    "directory": "./",
+    "directory": "./public",
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/events"]
   },
@@ -15,7 +16,7 @@
     {
       "binding": "DB",
       "database_name": "questlog",
-      "database_id": "PASTE_AFTER_CREATE"
+      "database_id": "36dc1d23-04cd-49cb-8f77-b35702739525"
     }
   ]
 
