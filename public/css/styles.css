@@ -79,13 +79,23 @@ section:first-of-type .sech { margin-top: .8rem; }
   padding: .6rem .2rem; border-bottom: 1px solid var(--line);
 }
 .quest.sated { opacity: .45; }
+/* Dust patina — the row visibly warms as a bounty rots, so the multiplier is
+   legible at a glance without reading the number. */
+.dust { color: var(--accent); white-space: nowrap; }
+.quest.dust-1 { background: linear-gradient(90deg, #c9853f12, transparent 65%); }
+.quest.dust-2 { background: linear-gradient(90deg, #c9853f24, transparent 75%); }
+.quest.dust-3 { background: linear-gradient(90deg, #c9853f3d, transparent 85%); }
+.quest.dust-3 .qtitle { color: #f0d9b5; }
 .tick {
   flex: none; width: 27px; height: 27px; border-radius: 50%;
   border: 2px solid var(--line); background: none; color: var(--xp);
   font-size: .9rem; cursor: pointer;
 }
-.tick:hover { border-color: var(--xp); }
-.tick.on { border-color: var(--xp); background: #7fb0692e; }
+.tick:not(:disabled):hover { border-color: var(--xp); }
+/* Done is the filled green circle ALONE -- no checkmark glyph (see row() in
+   app.js). Solid fill rather than a faint tint, since with no glyph the colour
+   is carrying the whole signal and needs to read at a glance on a phone. */
+.tick.on { border-color: var(--xp); background: var(--xp); }
 .tick:disabled { cursor: default; }
 .qmain, .rmain { flex: 1; min-width: 0; }
 .qtitle, .rlabel { overflow-wrap: anywhere; }
@@ -128,7 +138,10 @@ section:first-of-type .sech { margin-top: .8rem; }
 .fld input { width: 100%; padding: .55rem .6rem; font: inherit; color: var(--ink);
   background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; }
 .btnrow { display: flex; gap: .5rem; margin: .8rem 0; flex-wrap: wrap; }
-button:not(.tick):not(.drop):not(.buy) {
+/* Keep .tab in this exclusion list. Each :not() adds class-level specificity,
+   so this selector scores 0-4-1 and would otherwise beat the flat `.tab`
+   rule (0-1-0) and paint the nav as solid accent blocks. */
+button:not(.tick):not(.drop):not(.buy):not(.tab) {
   padding: .5rem 1rem; font: inherit; font-size: .9rem; cursor: pointer;
   color: var(--bg); background: var(--accent); border: 0; border-radius: 8px;
 }

@@ -159,20 +159,34 @@
   function bountyRow(q) {
     var note = q.due ? 'due ' + P.dueLabel(q.due) : '';
     var overdue = q.due && q.due < R.dateKey(new Date());
-    return row(q, false, note, false, overdue);
+    return row(q, false, note, false, overdue, R.questDust(q, st.level, new Date()));
   }
 
-  function row(q, ticked, note, muted, warn) {
+  /* Patina tier — a multiplier you can't see doesn't change behaviour. */
+  function dustClass(dust) {
+    if (dust >= 3) return ' dust-3';
+    if (dust >= 2) return ' dust-2';
+    if (dust >= 1.3) return ' dust-1';
+    return '';
+  }
+
+  function row(q, ticked, note, muted, warn, dust) {
+    dust = dust || 1;
     var base = R.baseXp(q);
+    var xp = Math.round(base * dust);
     return '' +
-      '<div class="quest' + (muted ? ' sated' : '') + '">' +
+      '<div class="quest' + (muted ? ' sated' : '') + dustClass(dust) + '">' +
+        /* No glyph when done -- the filled green circle carries it. aria-label
+           still flips, so screen readers get the state the colour conveys. */
         '<button class="tick' + (ticked ? ' on' : '') + '" data-done="' + q.id + '" ' +
-          (ticked ? 'disabled' : '') + ' aria-label="Complete">' + (ticked ? '✔' : '') + '</button>' +
+          (ticked ? 'disabled' : '') + ' aria-label="' +
+          (ticked ? 'Completed' : 'Complete') + '"></button>' +
         '<div class="qmain">' +
           '<div class="qtitle">' + esc(q.title) + '</div>' +
           '<div class="qmeta">' +
             (q.domain ? '<span class="dot dom-' + q.domain + '"></span>' + R.domainName(q.domain) + ' · ' : '') +
-            '!' + q.difficulty + ' · ' + base + ' XP' +
+            '!' + q.difficulty + ' · ' + xp + ' XP' +
+            (dust > R.DUST_MIN_SHOW ? ' · <span class="dust">×' + dust.toFixed(1) + ' dust</span>' : '') +
             (note ? ' · <span class="' + (warn ? 'warn' : '') + '">' + esc(note) + '</span>' : '') +
           '</div>' +
         '</div>' +
@@ -223,6 +237,7 @@
           when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '</div>' +
         '<div class="lwhat">' + esc(l.title) + '</div>' +
         '<div class="lval">' + (l.xp ? '<span class="xp">+' + l.xp + ' XP</span> ' : '') +
+          (l.mult && l.mult > R.DUST_MIN_SHOW ? '<span class="dust">×' + l.mult.toFixed(1) + '</span> ' : '') +
           (l.gold ? '<span class="gold">' + (l.gold > 0 ? '+' : '') + l.gold + '⛁</span>' : '') + '</div>' +
         '</div>';
     }).join('') + '</div>';
@@ -249,11 +264,15 @@
   /* ---- unlock moment -------------------------------------------------- */
   function maybeUnlock() {
     if (st.level <= seenLevel) return;
+    /* Advance ONE level per call, not straight to st.level. A dusted !5 can
+     * pay 1000 XP and cross several thresholds at once, and each unlock has
+     * to get its own reveal. Closing the modal re-renders, which calls this
+     * again and shows the next one. */
     var lvl = seenLevel + 1;
     var u = R.unlockAt(lvl);
-    seenLevel = st.level;
+    seenLevel = lvl;
     S.setMeta('seenLevel', seenLevel);
-    if (!u) return;
+    if (!u) { maybeUnlock(); return; }   // no reveal at this level — keep climbing
 
     var el = document.createElement('div');
     el.className = 'modal';

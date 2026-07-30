@@ -91,7 +91,8 @@
 
           st.log.push({
             at: e.ts, kind: 'complete', questId: q.id, title: q.title,
-            questKind: q.kind, domain: q.domain, xp: xp, gold: gold, dateKey: p.dateKey
+            questKind: q.kind, domain: q.domain, xp: xp, gold: gold, dateKey: p.dateKey,
+            mult: mult.total, parts: mult.parts
           });
 
           if (q.kind === 'bounty') q.state = 'done';
