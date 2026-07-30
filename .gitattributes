@@ -1,0 +1,13 @@
+# Normalize line endings so Windows CRLF vs. Unix LF stops showing up in diffs.
+# Text files are stored as LF in the repository and checked out as LF everywhere,
+# which silences the "LF will be replaced by CRLF" / line-ending diff warnings.
+* text=auto eol=lf
+
+# Binary files: never convert their bytes.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.zip   binary

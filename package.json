@@ -1,0 +1,12 @@
+{
+  "name": "questlog",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A quest log for real-life goals. Static PWA + Cloudflare Worker/D1 event mirror.",
+  "scripts": {
+    "dev": "python -m http.server 8742",
+    "db:init": "wrangler d1 execute questlog --remote --file=worker/schema.sql",
+    "db:init:local": "wrangler d1 execute questlog --local --file=worker/schema.sql",
+    "deploy": "wrangler deploy"
+  }
+}

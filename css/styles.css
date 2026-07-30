@@ -1,0 +1,154 @@
+/* Quest Log — warm dark parchment, phone-first. */
+:root {
+  --bg: #17130f;
+  --bg2: #1f1a15;
+  --line: #362c22;
+  --ink: #e9dfd0;
+  --dim: #9c8d79;
+  --gold: #d9a441;
+  --xp: #7fb069;
+  --warn: #d97449;
+  --accent: #c9853f;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 16px/1.45 ui-rounded, "Segoe UI", system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+#app { max-width: 640px; margin: 0 auto; padding: 0 0 4rem; }
+code {
+  font-family: ui-monospace, "Cascadia Mono", monospace; font-size: .85em;
+  background: #0000004d; border: 1px solid var(--line); border-radius: 4px; padding: .05em .3em;
+}
+.muted { color: var(--dim); }
+.small { font-size: .85rem; }
+.warn { color: var(--warn); }
+.xp { color: var(--xp); }
+.gold { color: var(--gold); }
+
+/* header ------------------------------------------------------------- */
+.hdr {
+  padding: max(.9rem, env(safe-area-inset-top)) 1rem .7rem;
+  background: linear-gradient(#241d16, var(--bg));
+  border-bottom: 1px solid var(--line);
+}
+.lvl { display: flex; justify-content: space-between; align-items: baseline; }
+.lvnum { font-size: 1.35rem; font-weight: 700; letter-spacing: .02em; }
+.lvl .gold { font-variant-numeric: tabular-nums; font-weight: 600; }
+.bar {
+  height: 7px; margin: .5rem 0 .3rem; border-radius: 4px;
+  background: #0000005c; border: 1px solid var(--line); overflow: hidden;
+}
+.bar i { display: block; height: 100%; background: linear-gradient(90deg, #5d8a4c, var(--xp)); }
+.barlab { display: flex; justify-content: space-between; font-size: .78rem; color: var(--dim); }
+
+/* tabs --------------------------------------------------------------- */
+.tabs { display: flex; gap: .25rem; padding: .5rem 1rem 0; border-bottom: 1px solid var(--line); }
+.tab {
+  flex: 1; background: none; border: 0; border-bottom: 2px solid transparent;
+  color: var(--dim); font: inherit; font-size: .9rem; padding: .5rem .2rem; cursor: pointer;
+}
+.tab.on { color: var(--ink); border-bottom-color: var(--accent); }
+.tab.locked { opacity: .5; }
+
+.pane { padding: 1rem; }
+.sech {
+  font-size: .78rem; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--dim); font-weight: 600; margin: 1.4rem 0 .5rem;
+}
+section:first-of-type .sech { margin-top: .8rem; }
+.lede { color: var(--dim); font-size: .9rem; margin: 0 0 1rem; }
+.empty { padding: .6rem 0; font-size: .9rem; }
+
+/* entry -------------------------------------------------------------- */
+.entry { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-bottom: .4rem; }
+#entry-form { display: flex; gap: .4rem; }
+#line {
+  flex: 1; min-width: 0; padding: .7rem .8rem; font: inherit; color: var(--ink);
+  background: var(--bg2); border: 1px solid var(--line); border-radius: 9px;
+}
+#line:focus { outline: none; border-color: var(--accent); }
+#add { flex: none; width: 2.9rem; font-size: 1.25rem !important; padding: 0 !important; }
+.preview { font-size: .8rem; padding: .4rem .2rem 0; min-height: 1.6em; }
+.preview b { color: var(--ink); }
+
+/* quests ------------------------------------------------------------- */
+.quest, .reward {
+  display: flex; align-items: center; gap: .7rem;
+  padding: .6rem .2rem; border-bottom: 1px solid var(--line);
+}
+.quest.sated { opacity: .45; }
+.tick {
+  flex: none; width: 27px; height: 27px; border-radius: 50%;
+  border: 2px solid var(--line); background: none; color: var(--xp);
+  font-size: .9rem; cursor: pointer;
+}
+.tick:hover { border-color: var(--xp); }
+.tick.on { border-color: var(--xp); background: #7fb0692e; }
+.tick:disabled { cursor: default; }
+.qmain, .rmain { flex: 1; min-width: 0; }
+.qtitle, .rlabel { overflow-wrap: anywhere; }
+.qmeta { font-size: .76rem; color: var(--dim); margin-top: .12rem; }
+.drop {
+  flex: none; background: none; border: 0; color: var(--line);
+  font-size: 1.3rem; line-height: 1; padding: .2rem .4rem; cursor: pointer;
+}
+.drop:hover { color: var(--warn); }
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: .35rem; vertical-align: baseline; }
+.dom-b { background: #cf5f5f; }  /* Body   */
+.dom-m { background: #6f9bd1; }  /* Mind   */
+.dom-h { background: #c98c4f; }  /* Hearth */
+.dom-c { background: #a97fd1; }  /* Craft  */
+.dom-k { background: #d1849f; }  /* Kin    */
+.dom-p { background: #6fb59a; }  /* Purse  */
+
+/* shop --------------------------------------------------------------- */
+.stock { display: flex; gap: .4rem; margin-bottom: 1rem; }
+.stock input { min-width: 0; padding: .55rem .6rem; font: inherit; color: var(--ink);
+  background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; }
+.stock input:first-child { flex: 1; }
+.stock input[type=number] { width: 5.5rem; }
+.reward.poor { opacity: .5; }
+.buy {
+  flex: none; padding: .4rem .8rem; font: inherit; font-size: .85rem;
+  color: var(--bg); background: var(--gold); border: 0; border-radius: 7px; cursor: pointer;
+}
+.buy:disabled { background: var(--line); color: var(--dim); cursor: default; }
+
+/* log ---------------------------------------------------------------- */
+.logrow { display: flex; gap: .6rem; align-items: baseline; padding: .4rem 0; border-bottom: 1px solid var(--line); font-size: .88rem; }
+.lwhen { flex: none; width: 8.5rem; font-size: .74rem; }
+.lwhat { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.lval { flex: none; font-size: .8rem; font-variant-numeric: tabular-nums; }
+
+/* settings ----------------------------------------------------------- */
+.fld { display: block; margin-bottom: .8rem; }
+.fld span { display: block; font-size: .8rem; color: var(--dim); margin-bottom: .25rem; }
+.fld input { width: 100%; padding: .55rem .6rem; font: inherit; color: var(--ink);
+  background: var(--bg2); border: 1px solid var(--line); border-radius: 8px; }
+.btnrow { display: flex; gap: .5rem; margin: .8rem 0; flex-wrap: wrap; }
+button:not(.tick):not(.drop):not(.buy) {
+  padding: .5rem 1rem; font: inherit; font-size: .9rem; cursor: pointer;
+  color: var(--bg); background: var(--accent); border: 0; border-radius: 8px;
+}
+button.ghost { background: none; color: var(--ink); border: 1px solid var(--line); }
+
+/* locked + modal ------------------------------------------------------ */
+.locked-pane { text-align: center; padding: 3rem 1rem; }
+.locked-pane .big { font-size: 2.5rem; opacity: .4; }
+.modal {
+  position: fixed; inset: 0; background: #000000c4; display: flex;
+  align-items: center; justify-content: center; padding: 1.5rem; z-index: 50;
+}
+.modal .card {
+  max-width: 22rem; background: var(--bg2); border: 1px solid var(--accent);
+  border-radius: 14px; padding: 1.6rem; text-align: center;
+  box-shadow: 0 0 60px #c9853f2e;
+}
+.modal .kicker {
+  font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--accent);
+}
+.modal h2 { margin: .4rem 0 .6rem; }
+.modal p { color: var(--dim); font-size: .9rem; }
+.modal .close { margin-top: 1rem; }

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17130f">
+<title>Quest Log</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+
+<!-- Bump APP_VERSION on EVERY js/css change, or the browser serves the stale
+     cached file from the identical ?v=N URL (a hard refresh often won't
+     dislodge a versioned URL). -->
+<script>var APP_VERSION = 3;</script>
+<script>
+(function () {
+  var files = ['css/styles.css', 'js/rules.js', 'js/parse.js', 'js/reduce.js',
+               'js/store.js', 'js/sync.js', 'js/app.js'];
+  for (var i = 0; i < files.length; i++) {
+    var f = files[i], u = f + '?v=' + APP_VERSION;
+    if (f.slice(-4) === '.css') document.write('<link rel="stylesheet" href="' + u + '">');
+    else document.write('<script src="' + u + '"><\/script>');
+  }
+})();
+</script>
+</head>
+<body>
+<div id="app"><div class="pane"><p class="muted">Opening the log…</p></div></div>
+<script>
+if ('serviceWorker' in navigator) {
+  addEventListener('load', function () { navigator.serviceWorker.register('sw.js?v=' + APP_VERSION); });
+}
+</script>
+</body>
+</html>
