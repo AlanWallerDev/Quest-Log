@@ -89,28 +89,44 @@
   R.MULTIPLIER_CAP = 6;
   R.LOOT_LEVEL = 4;
 
+  /* Resolve declarative item effects (see the schema note in loot.js) into an
+   * accumulator. Items describe what they do; this decides how it applies.
+   *
+   * Today the only source is `state.armed` — a consumed item waiting on the
+   * next completion. Equipment becomes a SECOND source list through this same
+   * function rather than new resolution logic:
+   *     R.applyEffects(equippedEffects(state), acc);
+   * New effect targets (gold, drop chance, carry limits) get a branch here and
+   * work for every source at once. */
+  R.applyEffects = function (effects, acc) {
+    (effects || []).forEach(function (fx) {
+      if (!fx) return;
+      if (fx.target === 'multiplier') {
+        acc.total += fx.value;
+        acc.parts.push({ name: fx.label || fx.itemId || 'item', value: 1 + fx.value });
+      }
+    });
+    return acc;
+  };
+
   R.multipliers = function (quest, state, event) {
-    var parts = [], total = 1;
+    var acc = { total: 1, parts: [] };
     var level = state && state.level || 1;
 
     if (quest && quest.kind === 'bounty' && level >= R.DUST_LEVEL) {
       var age = R.ageDays(quest.createdAt, event && event.ts);
       var dust = R.dustMultiplier(age);
       if (dust > 1) {
-        parts.push({ name: 'dust', value: dust, ageDays: age });
-        total += dust - 1;
+        acc.parts.push({ name: 'dust', value: dust, ageDays: age });
+        acc.total += dust - 1;
       }
     }
 
-    /* Doubling Charm (L4) — armed by an item.consumed event, spent by the
-     * next completion. Adds ×1 rather than multiplying, same as every other
-     * bonus, so it can't compound with a 4× dusted bounty into a runaway. */
-    if (state && state.pendingCharm) {
-      parts.push({ name: 'charm', value: 2 });
-      total += 1;
-    }
+    /* Every bonus ADDS rather than multiplies, so nothing compounds with a
+     * 4× dusted bounty into a runaway payout. */
+    R.applyEffects(state && state.armed, acc);
 
-    return { total: Math.min(total, R.MULTIPLIER_CAP), parts: parts };
+    return { total: Math.min(acc.total, R.MULTIPLIER_CAP), parts: acc.parts };
   };
 
   /* ---- level curve --------------------------------------------------- */

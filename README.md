@@ -107,6 +107,38 @@ worker/        Cloudflare Worker + D1 schema
 Write path: append locally → fold → render → *then* enqueue the push. The UI
 never waits on the network.
 
+## Extending the item system
+
+Items are designed to grow into equipment (or anything else) without a
+migration. Three invariants make that work:
+
+1. **Item ids are permanent.** Events reference them forever, so a shipped id
+   must never be renamed or deleted or old `loot.rolled` events orphan.
+   Display names, descriptions and rarities are free to change.
+2. **Every copy already has its own identity.** `st.rolls[rollId]` holds
+   instances; `st.hoard` is only a count projected over them. Equipment needs
+   to name a *specific* copy ("which ring is equipped"), and a bare counter
+   could not express that.
+3. **Items declare, the engine resolves.** An item's `effects` array is
+   interpreted by `RULES.applyEffects`, not by per-item branches:
+
+   ```js
+   effects: [{ target: 'multiplier', value: 1, when: 'next-completion' }]
+   ```
+
+Adding equipment should therefore be: an `{id:'equipment', layout:'rows'}`
+entry in `LOOT.KINDS`; items carrying `slot` and `effects[{when:'equipped'}]`;
+an `item.equipped` event storing a `rollId`; and **one extra call** —
+`RULES.applyEffects(equippedEffects(state), acc)` alongside the existing
+`state.armed` one. New effect targets (gold, drop chance) get a branch in
+`applyEffects` and immediately work for every source.
+
+Two supporting details: `droppable: false` keeps an item out of the random
+table, for quest rewards or crafted gear; and the Hoard renders a section for
+any *undeclared* kind, so a new kind can never silently vanish from the UI.
+That fallback prevents disappearance, not a wrong affordance — real equipment
+still wants its own `LOOT.KINDS` entry to get an Equip action instead of Use.
+
 ## Running it
 
 ```bash

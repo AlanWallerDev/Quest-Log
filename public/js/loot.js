@@ -23,11 +23,37 @@
   L.RARITIES = ['common', 'uncommon', 'rare'];
   L.RARITY_LABEL = { common: 'Common', uncommon: 'Uncommon', rare: 'Rare' };
 
+  /* ---- item schema ----------------------------------------------------
+   *  id         PERMANENT. Events reference it forever, so never rename or
+   *             delete an id that has shipped or old loot.rolled events
+   *             orphan. Display names are free to change at any time.
+   *  kind       must appear in L.KINDS or the Hoard will not render it.
+   *  rarity     common | uncommon | rare
+   *  domain     optional; biases drops toward matching quests.
+   *  droppable  false keeps an item out of the random table — for future
+   *             quest rewards, crafted, or purchased items.
+   *  slot       RESERVED for equipment ('hand', 'trinket', …). Unused today.
+   *  effects    declarative bonuses, resolved by RULES.applyEffects:
+   *               [{ target:'multiplier', value:1, when:'next-completion' }]
+   *             `when:'equipped'` will drive equipment through the exact
+   *             same resolver — a new SOURCE list, not new logic.
+   *
+   * Adding equipment later should be: a `{id:'equipment'}` entry in L.KINDS,
+   * items carrying `slot` + `effects[{when:'equipped'}]`, an `item.equipped`
+   * event storing a rollId, and one extra applyEffects() call. No migration:
+   * st.rolls already gives every copy its own identity.
+   * ------------------------------------------------------------------- */
+  L.KINDS = [
+    { id: 'consumable', label: 'Consumables', layout: 'rows' },
+    { id: 'curio', label: 'Curios', layout: 'grid' }
+  ];
+
   L.ITEMS = [
     /* ---- consumables ------------------------------------------------- */
     { id: 'reroll', name: 'Reroll Token', kind: 'consumable', rarity: 'uncommon',
       desc: 'Discard a drop the moment you find it and roll again.' },
     { id: 'charm', name: 'Doubling Charm', kind: 'consumable', rarity: 'rare',
+      effects: [{ target: 'multiplier', value: 1, when: 'next-completion', label: 'charm' }],
       desc: 'Adds ×1 to your next completion. Bonuses add rather than multiply, so on an undusted quest this doubles it.' },
 
     /* ---- curios, themed to the domain that dropped them --------------- */
@@ -104,8 +130,9 @@
   L.pick = function (quest, dust, rnd) {
     rnd = rnd || Math.random;
     var rarity = pickWeighted(L.rarityWeights(dust), rnd());
-    var pool = L.ITEMS.filter(function (i) { return i.rarity === rarity; });
-    if (!pool.length) pool = L.ITEMS.slice();
+    var table = L.ITEMS.filter(function (i) { return i.droppable !== false; });
+    var pool = table.filter(function (i) { return i.rarity === rarity; });
+    if (!pool.length) pool = table.slice();
 
     /* Prefer a curio from the quest's own domain, so the Hoard becomes a
      * record of where the year's effort actually went. */

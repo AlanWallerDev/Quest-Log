@@ -234,30 +234,53 @@
     var h = '<p class="lede">' + found + ' of ' + LOOT.total() + ' found. Curios do nothing ' +
       'but remember which part of your life they came from.</p>';
 
-    h += '<h2 class="sech">Consumables</h2>';
-    h += LOOT.ITEMS.filter(function (i) { return i.kind === 'consumable'; }).map(function (i) {
-      var n = st.hoard[i.id] || 0;
-      var armed = i.id === 'charm' && st.pendingCharm;
+    /* Sections are driven by LOOT.KINDS, not hardcoded filters. Any item whose
+     * kind isn't declared still gets a section of its own, so introducing a new
+     * kind can never make items silently vanish from the Hoard. */
+    var known = {}, extras = [];
+    LOOT.KINDS.forEach(function (k) { known[k.id] = true; });
+    LOOT.ITEMS.forEach(function (i) {
+      if (!known[i.kind] && extras.indexOf(i.kind) < 0) extras.push(i.kind);
+    });
+
+    LOOT.KINDS.concat(extras.map(function (k) {
+      return { id: k, label: k.charAt(0).toUpperCase() + k.slice(1), layout: 'rows' };
+    })).forEach(function (sec) {
+      var items = LOOT.ITEMS.filter(function (i) { return i.kind === sec.id; });
+      if (!items.length) return;
+      h += '<h2 class="sech">' + esc(sec.label) + '</h2>';
+      h += sec.layout === 'grid' ? hoardGrid(items) : hoardRows(items);
+    });
+    return h;
+  }
+
+  function isArmed(itemId) {
+    return (st.armed || []).some(function (fx) { return fx.itemId === itemId; });
+  }
+
+  function hoardRows(items) {
+    return items.map(function (i) {
+      var n = st.hoard[i.id] || 0, armed = isArmed(i.id);
+      /* Usable from the Hoard iff the item declares effects. A Reroll Token has
+         none — it is only spendable at the moment of a drop. */
+      var usable = n && i.effects && !armed;
       return '<div class="reward' + (n ? '' : ' poor') + '">' +
         '<div class="rmain"><div class="rlabel">' + esc(i.name) + (n > 1 ? ' ×' + n : '') +
           (armed ? ' <span class="dust">armed</span>' : '') + '</div>' +
-          '<div class="qmeta">' + esc(i.desc) + '</div></div>' +
-        /* A Reroll Token is only spendable at the moment of a drop, so it gets
-           no button here — the drop modal offers it instead. */
-        (i.id === 'charm' && n && !armed ? '<button class="buy" data-use="charm">Use</button>' : '') +
+          '<div class="qmeta">' + esc(i.desc || '') + '</div></div>' +
+        (usable ? '<button class="buy" data-use="' + i.id + '">Use</button>' : '') +
         '</div>';
     }).join('');
+  }
 
-    h += '<h2 class="sech">Curios</h2><div class="curios">';
-    h += LOOT.ITEMS.filter(function (i) { return i.kind === 'curio'; }).map(function (i) {
+  function hoardGrid(items) {
+    return '<div class="curios">' + items.map(function (i) {
       var n = st.hoard[i.id] || 0;
       if (!n) return '<div class="curio unknown">???</div>';
       return '<div class="curio got r-' + i.rarity + '">' +
-        '<span class="dot dom-' + i.domain + '"></span>' + esc(i.name) +
+        (i.domain ? '<span class="dot dom-' + i.domain + '"></span>' : '') + esc(i.name) +
         (n > 1 ? ' <span class="muted">×' + n + '</span>' : '') + '</div>';
-    }).join('');
-    h += '</div>';
-    return h;
+    }).join('') + '</div>';
   }
 
   /* ---- log ----------------------------------------------------------- */

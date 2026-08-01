@@ -37,7 +37,7 @@
       rewards: {},       // id -> {label, price, bought}
       rolls: {},         // rollId -> {itemId, at, questId}   (hoard derives from this)
       hoard: {},         // itemId -> count                   (built after the fold)
-      pendingCharm: false,
+      armed: [],         // effects from consumed items, awaiting the next completion
       done: {},          // questId -> [dateKey, ...]
       log: [],           // newest last
       levelUps: [],      // [{level, at}]
@@ -109,7 +109,7 @@
             mult: mult.total, parts: mult.parts
           });
 
-          st.pendingCharm = false;   // a charm is spent by the next completion
+          st.armed = [];   // armed item effects are spent by this completion
 
           if (q.kind === 'bounty') q.state = 'done';
           else (st.done[q.id] || (st.done[q.id] = [])).push(p.dateKey);
@@ -126,11 +126,20 @@
           st.log.push({ at: e.ts, kind: 'loot', itemId: p.itemId, questId: p.questId });
           break;
 
-        case 'item.consumed':
+        /* Effects come from the item's own declaration, not a branch per item,
+         * so a new consumable is a data change with no reducer edit. */
+        case 'item.consumed': {
           if (!removeOne(st.rolls, p.itemId)) break;      // can't spend what you don't hold
-          if (p.itemId === 'charm') st.pendingCharm = true;
+          var def = window.LOOT && window.LOOT.get(p.itemId);
+          if (def && def.effects) {
+            def.effects.forEach(function (fx) {
+              if (fx.when !== 'next-completion') return;
+              st.armed.push({ itemId: p.itemId, target: fx.target, value: fx.value, label: fx.label });
+            });
+          }
           st.log.push({ at: e.ts, kind: 'use', itemId: p.itemId });
           break;
+        }
 
         case 'shop.stocked':
           if (!p.rewardId) break;
